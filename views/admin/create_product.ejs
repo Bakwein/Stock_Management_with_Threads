@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head') %>
+    <style>
+        body {
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #2A2B33;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/admin/nav') %>
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff;"><strong>Ürün Oluştur</strong></h3>
+            </div>
+            <div class="col-md-12 mt-3">
+                <form id="urun">
+                    <div class="row mb-3">
+                        <label for="Ürün Adı" class="col-sm-2 col-from-label" style="color: #ccc;">Ürün Adı</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" id="urunAdi" name="urunAdi">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <label for="Ürün Adı" class="col-sm-2 col-from-label" style="color: #ccc;">Stok Miktarı</label>
+                        <div class="col-sm-8">
+                            <input type="number" class="form-control" id="stokMiktari" name="stokMiktari">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <label for="Ürün Adı" class="col-sm-2 col-from-label" style="color: #ccc;">Ürün Fiyatı</label>
+                        <div class="col-sm-8">
+                            <input type="number" class="form-control" id="fiyat" name="fiyat">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-8 offset-sm-2">
+                            <button type="submit" class="btn btn-primary">Oluştur</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <% if (message && message.length > 0) { %>
+            <div class="row justify-content-center" style="margin-left: 90px;">
+                <div class="col-md-8">
+                    <div class="alert <%= alert_type %> row justify-content-center" role="alert">
+                        <%= message %>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+        
+    </div>
+
+
+
+    <script>
+        const form = document.querySelector("#urun");
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form); 
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+            const response = await fetch("/api/create_product", {
+                method: "POST", 
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log("Başarılı:", result);
+
+                /*if (result.hata == 0)
+                {
+                    result.message = 
+                }*/
+            } else {
+                console.error("Hata:", response.statusText);
+            }
+            } catch (error) {
+            console.error("Fetch Hatası:", error);
+            }
+        });
+    </script>
+</body>
+</html>

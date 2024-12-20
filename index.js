@@ -33,7 +33,39 @@ const bodyParser = require('body-parser');
 
 require("./createtables");
 
-app.listen(3000, function()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+app.post("/api/create_product", async function(req,res)
 {
-    console.log("listening on port 3000");
+    const product_data = req.body;
+    console.log(product_data);
+
+    await db.execute("INSERT INTO products (ProductName, Stock, Price) VALUES (?,?,?)", [product_data.urunAdi, product_data.stokMiktari, product_data.fiyat]);
+
+    res.json({ message: 'Ürün başarıyla oluşturuldu!', hata: 0, product_data });
+});
+
+app.listen(3001, function()
+{
+    console.log("listening on port 3001");
 });
