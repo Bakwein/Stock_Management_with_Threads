@@ -381,8 +381,11 @@ app.post("/api/siparis_olustur", async function(req, res) {
             res.json({ message: 'Stok yetersiz.', hata: 1 });
             return;
         }*/
+        const token = req.cookies.token;
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const CustomerIDR = decoded.id;
 
-        const [kontrol,] = await db.execute("SELECT * FROM orders WHERE ProductIDR = ? AND OrderStatus = ?", [ProductIDR, 0]);
+        const [kontrol,] = await db.execute("SELECT * FROM orders WHERE ProductIDR = ? AND OrderStatus = ? AND CustomerIDR = ?", [ProductIDR, 0, CustomerIDR]);
 
         if(kontrol.length > 0)
         {
@@ -390,9 +393,7 @@ app.post("/api/siparis_olustur", async function(req, res) {
             return;
         }
 
-        const token = req.cookies.token;
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        const CustomerIDR = decoded.id;
+        
 
         const [musteri,] = await db.execute("SELECT * FROM customers WHERE CustomerID = ?", [CustomerIDR]);
         if(musteri.length == 0)
@@ -428,6 +429,7 @@ app.post("/api/siparis_olustur", async function(req, res) {
             workerData: {
                 orderId: orderID,
                 customerId: CustomerIDR,
+                customerType: musteriTipi,
                 timeout: 1 * 60 * 1000 // 5 dakika
             }
         });
@@ -472,7 +474,6 @@ app.post("/api/siparis_olustur", async function(req, res) {
     {
         res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
     }
-
     
 });
 

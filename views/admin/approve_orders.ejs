@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head') %>
+    <style>
+        body {
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #2A2B33;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/admin/nav') %>
+    <div class="container mt-3">
+         <div class="col-md-12 mt-3">
+            <h3 style="color: #fff;"><strong>Onay Bekleyen Siparişler</strong></h3>
+            <div class="row">
+                <div class="col-md-12 mt-3">
+                    <% products.forEach(product => { %>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h3 class="card-title
+                                "><strong><%= product.ProductName %></strong></h5>
+                                <p class="card-text">Stok: <%= product.Stock %></p>
+                                <p class="card-text">Fiyat: <%= product.Price %></p>
+                                <hr>
+                                <% if (!orders.some(order => order.ProductIDR == product.ProductID)) { %>
+                                    <p class="card-text">Bu ürün için onay bekleyen sipariş bulunmamaktadır.</p>
+                                 
+                                <% } else { %>
+                                     <button class="btn btn-success">Onayla</button>
+                                     <h6 class="mt-3">Bu ürün için onay bekleyen siparişler:</h6>                                     
+                                    <% orders.forEach(order => { %>
+                                        <% if (order.ProductIDR == product.ProductID) { %>
+                                            <div class="col-md-3 mt-3" >
+                                                <p class="card-text"><strong>ID:</strong> <%= order.OrderID %></p>
+                                                <% customers.forEach(customer => { %>
+                                                    <% if (customer.CustomerID == order.CustomerIDR) { %>
+                                                        <p class="card-text"><strong>Müşteri:</strong> <%= customer.CustomerName %></p>
+                                                        <p class="card-text"><strong>Müşteri Tipi:</strong> <%= customer.CustomerType %></p>
+                                                    <% } %>
+                                                <% }) %>
+                                                <p class="card-text"><strong>Miktar:</strong> <%= order.Quantity %></p>
+                                                <p class="card-text"><strong>Sipariş Tarihi:</strong> <%= order.OrderDate.getDate() %>-<%= (order.OrderDate.getMonth()+1) %>-<%= order.OrderDate.getFullYear() %> <%= order.OrderDate.getHours() %>:<%= order.OrderDate.getMinutes() %>:<%= order.OrderDate.getSeconds() %></p>
+                                            </div> 
+                                            <hr>                     
+                                        <% } %>                                       
+                                    <% }) %>    
+                                <% } %>                                                          
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+        
+
+    
+</body>
+</html>

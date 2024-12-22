@@ -140,6 +140,24 @@ router.get("/logs", async function(req, res){
     })
 })
 
+router.get("/approve_orders", async function (req, res){
+    var ret = cookie_control(req, res);
+    if(ret === 1)
+    {
+        return;
+    }
+    const [orders,] = await db.execute("SELECT * FROM orders WHERE OrderStatus = 0");
+    const [products,] = await db.execute("SELECT * FROM products");
+    const [customers,] = await db.execute("SELECT * FROM customers");
+
+    res.render("admin/approve_orders", {
+        title: "Onay Bekleyen Siparişler",
+        orders: orders,
+        products: products,
+        customers: customers
+    });
+});
+
 
 router.get("/login_render", function(req, res){
     var ret = you_have_cookie(req, res);
