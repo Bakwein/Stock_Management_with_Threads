@@ -11,7 +11,160 @@
             background: #2A2B33;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <%- include('../partials/admin/nav') %>
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff;"><strong>Ürünler</strong></h3>
+            </div>
+            <canvas id="myChart" width="400" height="200"></canvas>
+            <div class="col-md-12 mt-3">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th style="width:50px; color: #fff">Id</th>
+                            <th style="color: #fff;">Ürün Adı</th>
+                            <th style="color: #fff;">Stok</th>
+                            <th style="color: #fff;">Fiyat</th>
+                            <th style="width:130px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% urunler.forEach(urun => { %>
+                            <tr>
+                                <td style="color: #ccc;">
+                                    <%= urun.ProductID %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= urun.ProductName %> 
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= urun.Stock %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= urun.Price %>
+                                </td>
+                                <td>
+                                    <a class="btn btn-sm btn-primary btn-edit" href="/admin/home/edit/<%= urun.ProductID %>">Düzenle</a>
+                                    <a class="btn btn-sm btn-danger btn-delete" data-id="<%= urun.ProductID %>">Sil</a>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+    </div>
+
+    <script>
+        async function fetchStockData() {
+            try {
+                // Backend'deki /api/stocks endpoint'inden veri çek
+                const response = await fetch('/api/stocks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                });
+                const data = await response.json();
+                return data; // API'den dönen Stock verileri
+            } catch (error) {
+                console.error('Veri çekme hatası:', error);
+                return [];
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            const stockData = fetchStockData(); // API'den veriyi al
+            const array = await stockData;
+            console.log(array);
+
+            const productNames = array.urunler
+            .filter(product => product.ProductName) 
+            .map(product => product.ProductName);
+            console.log(productNames);
+
+            const productStock = array.urunler
+            .filter(product => product.Stock)
+            .map(product => product.Stock);
+            console.log(productStock);
+
+            const backgroundColors = productStock.map(stock => stock < 50 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)');
+            const borderColors = productStock.map(stock => stock < 50 ? 'rgba(255, 99, 132, 1)' : 'rgba(75, 192, 192, 1)');
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: productNames, // Her ürün için bir etiket
+                    datasets: [{
+                        label: 'Stok Miktarı',
+                        data: productStock, // Veritabanından çekilen veriler
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+        
+        
+        
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+        const deleteButtons = document.querySelectorAll(".btn-delete");
+
+        deleteButtons.forEach((button) => {
+            button.addEventListener("click", async (e) => {
+                e.preventDefault(); 
+
+                const productId = button.getAttribute("data-id");
+
+                const confirmed = confirm(`Ürün ID: ${productId} silmek istediğinize emin misiniz?`);
+                if (!confirmed) return;
+
+                try {
+                    const response = await fetch(`/api/delete_product/${productId}`, {
+                        method: "GET",
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log("Silme Başarılı:", result);
+
+                        const row = button.closest("tr");
+                        row.remove();
+                    } else {
+                        const alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-danger row justify-content-center`; 
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = "Silme işlemi sırasında bir hata oluştu.";
+                        document.querySelector("#alert-container").appendChild(alertDiv);
+                    }
+                } catch (error) {
+                    const alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-danger row justify-content-center`; 
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = "Sunucuyla bağlantı kurulurken bir hata oluştu.";
+                    document.querySelector("#alert-container").appendChild(alertDiv);
+                }
+            });
+        });
+    });
+    </script>
 </body>
 </html>

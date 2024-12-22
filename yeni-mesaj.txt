@@ -1,0 +1,59 @@
+BAŞARI
+
+ const alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-success row justify-content-center`; // Başarı için yeşil alert
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = result.message || "Ürün başarıyla oluşturuldu."; // API'den gelen mesaj
+                    document.querySelector(".container").appendChild(alertDiv);
+
+
+
+HATA
+
+const alertDiv = document.createElement("div");
+alertDiv.className = `alert alert-danger row justify-content-center`; // Hata için kırmızı alert
+alertDiv.role = "alert";
+alertDiv.innerText = result.message || "Bir hata oluştu."; // API'den gelen 
+document.querySelector(".container").appendChild(alertDiv);
+
+
+TOPLU
+
+
+if(data.hata === 0)
+            {
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-success row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Ürün başarıyla oluşturuldu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-success row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Ürün başarıyla oluşturuldu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+
+            } else {
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+            }

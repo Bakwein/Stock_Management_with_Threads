@@ -92,8 +92,77 @@ async function create_logs_table()
     }
 }
 
+async function create_admin_table()
+{
+    try{
+        await db.execute(`CREATE TABLE IF NOT EXISTS admin (
+            AdminID int(10) unsigned zerofill NOT NULL AUTO_INCREMENT,
+            Nickname varchar(255) NOT NULL,
+            Password varchar(255) NOT NULL,
+            PRIMARY KEY (AdminID)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`);
+        console.log("admin table is created");
+
+    }
+    catch(err)
+    {
+        console.log("admin table creation error :" +err);
+    }
+}
+
+
+async function create_admin(nickname, password)
+{
+    try{
+        const [ret,] = await db.execute(`SELECT * FROM admin WHERE Nickname = ?`, [nickname]);
+        if(ret.length > 0)
+        {
+            //console.log("admin already exists");
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await db.execute(`INSERT INTO admin (Nickname, Password) VALUES (?, ?)`, [nickname, hashedPassword]);
+    }
+    catch(err)
+    {
+        console.log("admin creation error :" +err);
+    }
+}
+
+async function create_default_table()
+{
+    try{
+        await db.execute(`CREATE TABLE IF NOT EXISTS control (
+            idcontrol int NOT NULL AUTO_INCREMENT,
+            status int NOT NULL,
+            PRIMARY KEY (idcontrol),
+            UNIQUE KEY idcontrol_UNIQUE (idcontrol)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`);
+        console.log("default table is created");
+
+        const [controls] = await db.execute("SELECT * from control WHERE idcontrol = 1");
+        if(controls.length > 0)
+        {
+            return;
+        }
+        await db.execute("INSERT INTO control (idcontrol, status) VALUES (1, 0)");
+        console.log("kontrol id=1 eklendi");        
+    }
+    catch(err)
+    {
+        console.log("default table creation error :" +err);
+    }
+}
 
 create_customer_table();
 create_products_table();
 create_orders_table();
 create_logs_table();
+create_default_table();
+
+//admin
+create_admin("admin", "admin");
+create_admin("admin2", "123");
+
+//default products

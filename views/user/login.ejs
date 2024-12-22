@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head') %>
+    <style>
+        body {
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #2A2B33;
+        }
+        .login-box {
+            margin-top: 100px;
+            width: 300px;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background-color: #2A2B33;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #FFF;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            color: #ccc;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-login:hover {
+            background-color: #0055af;
+            color: #fff;
+        }
+        .btn-register {
+            text-align: center;
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/begining-header') %> 
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-3">
+                <div class="login-box">
+                    <h2>Kullanıcı Girişi</h2>
+                    <form id="userLogin">
+                        <div class="form-group">
+                            <label for="tcno">Kullanıcı Adı</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Şifre:</label>
+                            <input type="password" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-login">Giriş</button>
+                    </form>
+                    <p class="btn-register"><a href="/user/register_render">Hesabınız yok mu? Kayıt olun</a></p>
+                    <p class="btn-register"><a href="/admin/login_render">Admin misiniz? Giriş yapın</a></p>
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        <button type="button" id="resetButton" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Müşteri Simülasyonunu Sıfırla</button>                        
+                    </div>
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        <button type="button" id="resetButton2" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Ürünleri Default Hale Getir</button>                        
+                    </div>
+
+
+                    
+                </div>
+            </div>
+        </div>
+        
+        <div id="alert-container"></div>
+        
+
+    </div>
+
+    <script>
+        const userLogin = document.getElementById('userLogin');
+        userLogin.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const password = document.getElementById('password').value;
+            const response = await fetch('/api/user/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, password })
+            });
+            const data = await response.json();
+            if (data.hata === 0) {
+                window.location.href = '/user/home_render';
+            } else {
+                //console.log("hm");
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+            }
+        });
+    </script>
+    <script>
+        document.getElementById('resetButton').addEventListener('click', async function() {
+            const confirmed = confirm(`Kullanıcıları sıfırlamak istediğinize emin misiniz?`);
+            if (!confirmed) return;
+            //alert("Müşteri Simülasyonu sıfırlandı!");
+            const response = await fetch('/api/user_reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if(data.hata === 0)
+            {
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-success row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Ürün başarıyla oluşturuldu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-success row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Ürün başarıyla oluşturuldu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+
+            } else {
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+            }
+
+            
+        });
+
+        document.getElementById('resetButton2').addEventListener('click', async function() {
+            const confirmed = confirm(`Ürünleri default hale getirmek istediğinize emin misiniz?`);
+            if (!confirmed) return;
+            const response = await fetch('/api/reset_products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if(data.hata === 0)
+            {
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-success row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Ürün başarıyla oluşturuldu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-success row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Ürün başarıyla oluşturuldu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+
+            } else {
+                const alertContainer = document.querySelector("#alert-container");
+
+                // Eğer zaten bir alert varsa içeriğini güncelle
+                let alertDiv = alertContainer.querySelector(".alert");
+                if (alertDiv) {
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                } else {
+                    
+                    alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-danger row justify-content-center`;
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = data.message || "Bir hata oluştu.";
+                    alertContainer.appendChild(alertDiv);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+
