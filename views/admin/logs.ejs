@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head') %>
+    <style>
+        body {
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #2A2B33;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/admin/nav') %>
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff;"><strong>Ürünler</strong></h3>
+            </div>
+            <canvas id="myChart" width="400" height="200"></canvas>
+            <div class="col-md-12 mt-3">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th style="width:50px; color: #fff">Id</th>
+                            <th style="color: #fff;">Nickname</th>
+                            <th style="color: #fff;">Sipariş ID</th>
+                            <th style="color: #fff;">Tarih</th>
+                            <th style="color: #fff;">Tip</th>
+                            <th style="color: #fff;">Açıklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% loglar.forEach(log => { %>
+                            <tr>
+                                <td style="color: #ccc;">
+                                    <%= log.LogID %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= log.CustomerNickname %> 
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= log.OrderID %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= log.LogDate %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= log.LogType %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= log.LogDetails %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+        const deleteButtons = document.querySelectorAll(".btn-delete");
+
+        deleteButtons.forEach((button) => {
+            button.addEventListener("click", async (e) => {
+                e.preventDefault(); 
+
+                const productId = button.getAttribute("data-id");
+
+                const confirmed = confirm(`Ürün ID: ${productId} silmek istediğinize emin misiniz?`);
+                if (!confirmed) return;
+
+                try {
+                    const response = await fetch(`/api/delete_product/${productId}`, {
+                        method: "GET",
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log("Silme Başarılı:", result);
+
+                        const row = button.closest("tr");
+                        row.remove();
+                    } else {
+                        const alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-danger row justify-content-center`; 
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = "Silme işlemi sırasında bir hata oluştu.";
+                        document.querySelector("#alert-container").appendChild(alertDiv);
+                    }
+                } catch (error) {
+                    const alertDiv = document.createElement("div");
+                    alertDiv.className = `alert alert-danger row justify-content-center`; 
+                    alertDiv.role = "alert";
+                    alertDiv.innerText = "Sunucuyla bağlantı kurulurken bir hata oluştu.";
+                    document.querySelector("#alert-container").appendChild(alertDiv);
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

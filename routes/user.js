@@ -69,30 +69,38 @@ router.get('/home_render', function(req, res)
     {
         return;
     }
+    
     //const user = verifyToken(req, res);
     res.redirect('/user/home');
 });
 
-router.get("/home", function(req, res){
+router.get("/home", async function(req, res){
     var ret = cookie_control(req, res);
     if(ret === 1)
     {
         return;
     }
-    /*
+    
     const token = req.cookies.token;
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     const id = decoded.id;
 
-    const [results,] = await db.execute("SELECT * FROM kullanıcılar where idkullanıcılar = ?", [id]);
+    const [results,] = await db.execute("SELECT * FROM customers where CustomerID = ?", [id]);
     if(results.length === 0)
     {
         res.redirect("/user/logout");
     }
-    */
+    const butce = results[0].Budget;
+    console.log("Bütçe: " + butce);
+    
+    const [urunler,] = await db.execute("SELECT * FROM products");
+
+
 
     res.render("user/home", {
         title: "Anasayfa",
+        urunler: urunler,
+        butce: butce,
     });
 });
 
@@ -122,6 +130,79 @@ router.get("/logout", function(req, res)
     res.clearCookie('token');
     res.redirect("/");
 });
+
+
+//thread denemesi
+
+const {Worker} = require('worker_threads');
+
+router.get("/non-blocking", function(req, res){
+    res.status(200).send("Non-blocking");
+});
+
+router.get("/blocking", async function(req, res){
+    /*let counter = 0;
+    for(let i = 0; i < 20000000000; i++)
+    {
+        counter++;
+    }
+     //res.status(200).send(`the res is ${counter}`);
+
+
+     //blocking uzun sürdüğünden blocking takıldığında hepsi takılmış olur çünkü main thread'i bloklar ve timout'a düşerler
+    */
+
+    const worker = new Worker('./worker.js');
+    worker.on('message', (data) => {
+        res.status(200).send(`the res is ${data}`);
+    });
+
+    worker.on('error', (error) => {
+        res.status(404).send(`An error occured: ${error}`);
+    });
+
+    //worker ile birlikte bu kısım hala blocklu normal olarak ama non-blocking kısmı çalışına erişilebilir
+   
+});
+
+router.get("/register_render", function(req, res){
+    var ret = you_have_cookie(req, res);
+    if(ret === 1)
+    {
+        return;
+    }
+    return res.redirect("/user/register");
+});
+
+router.get("/register", function(req, res){
+    var ret = you_have_cookie(req, res);
+    if(ret == 1)
+    {
+        return;
+    }
+    res.render("user/register", {
+       title: "Kayıt Ol" 
+    });
+});
+
+router.get("/profile", async function(req,res){
+    var ret = cookie_control(req, res);
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const id = decoded.id;
+    if(ret == 1)
+    {
+        return;
+    }
+    const [kullanici,] = await db.execute("SELECT * FROM customers WHERE CustomerID = ?", [id]);
+
+    res.render("user/profile", {
+        title: "Profilim",
+        kullanici: kullanici[0]
+    });
+});
+
+
 
 
 module.exports = router;

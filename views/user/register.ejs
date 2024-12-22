@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head') %>
+    <title><%= title %></title>
+    <style>
+        body {
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* body'nin min-height'ini 100vh olarak ayarladık */
+            background: #2A2B33;
+            margin: 0; /* body'nin margin'ini sıfır olarak ayarladık */
+            padding: 0; /* body'nin padding'ini sıfır olarak ayarladık */
+        }
+        .login-box {
+            width: 500px; /* Form genişliğini artırdık */
+            padding: 20px;
+            border: 5px solid #ccc;
+            border-radius: 10px;
+            background-color: #2A2B33;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 40px; /* En üst kısma boşluk ekledik */
+            margin-bottom: 20px; /* En alt kısma boşluk ekledik */
+        }
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            color: #ccc;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%; /* Form elemanlarının genişliğini ayarladık */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-login:hover {
+            background-color: #0055af;
+            color: #fff;
+        }
+        .btn-register {
+            text-align: center;
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .checkbox-group div {
+            display: flex;
+            align-items: center; /* Checkbox ve label aynı hizada olsun */
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px; /* Checkbox ile label arasında boşluk */
+        }
+
+    </style>
+</head>
+<body>
+    <%- include('../partials/begining-header') %>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="login-box">
+                    <h2>Kayıt Ol</h2>
+                    <form id="kullanici">
+                        <div class="form-group">
+                            <label for="isim">Nickname:</label>
+                            <input type="text" id="nick" name="nick" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="isim">İsim:</label>
+                            <input type="text" id="isim" name="isim" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cinsiyet">Tip:</label>
+                            <select id="cinsiyet" name="tip" required>
+                                <option value="0">Normal</option>
+                                <option value="1">Premium</option>
+                            </select>
+                        </div>
+                          
+                        <div class="form-group">
+                            <label for="password">Şifre:</label>
+                            <input type="password" id="password" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="repassword">Şifreyi Onayla:</label>
+                            <input type="password" id="repassword" name="repassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-login">Kaydol</button>
+                    </form>
+                    <p class="btn-register"><a href="/user/login_render">Hesabınız var mı? Giriş Yapın</a></p>
+                    <p class="btn-register"><a href="/">En Başa Dön</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+    </div>
+
+    <script>
+        const form = document.querySelector("#kullanici");
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form); 
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch("/api/user/register", {
+                    method: "POST", 
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log("Başarılı:", result);
+
+                    // Hata durumunda mesaj ve alert_type ayarları
+                    if (result.hata === 1) {
+                        const alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-danger row justify-content-center`; // Hata için kırmızı alert
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = result.message || "Bir hata oluştu."; // API'den gelen mesaj
+                        document.querySelector("#alert-container").appendChild(alertDiv);
+                    } else {
+                        window.location.href = '/user/login';
+                    }
+                } else {
+                    console.error("Hata:", response.statusText);
+                }
+            } catch (error) {
+                console.error("Fetch Hatası:", error);
+
+                // Fetch hatası için kullanıcıya bir uyarı göstermek
+                const alertDiv = document.createElement("div");
+                alertDiv.className = `alert alert-danger row justify-content-center`; // Kırmızı alert
+                alertDiv.role = "alert";
+                alertDiv.innerText = "Sunucuyla bağlantı kurulurken bir hata oluştu.";
+                document.querySelector("#alert-container").appendChild(alertDiv);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -86,7 +86,7 @@ router.get("/home", async function(req, res){
     }
     */
 
-    const [urunler,] = await db.execute("SELECT FROM products");
+    const [urunler,] = await db.execute("SELECT * FROM products");
 
     res.render("admin/home", {
         title: "Anasayfa",
@@ -126,6 +126,19 @@ router.get("/create_product", function(req, res){
     });
 
 });
+
+router.get("/logs", async function(req, res){
+    var ret = cookie_control(req, res);
+    if(ret === 1)
+    {
+        return;
+    }
+    const [loglar,] = await db.execute("SELECT logs.LogID, customers.CustomerNickname, logs.OrderIDR, logs.LogDate, logs.LogType, logs.LogDetails FROM logs JOIN customers ON logs.CustomerIDR = customers.CustomerID");
+    res.render("admin/logs", {
+        title: "Loglar",
+        loglar: loglar
+    })
+})
 
 
 router.get("/login_render", function(req, res){

@@ -160,7 +160,7 @@ create_products_table();
 create_orders_table();
 create_logs_table();
 create_default_table();
-
+create_admin_table();
 //admin
 create_admin("admin", "admin");
 create_admin("admin2", "123");

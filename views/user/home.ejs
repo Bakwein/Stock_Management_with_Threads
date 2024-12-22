@@ -11,11 +11,265 @@
             background: #2A2B33;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <%- include('../partials/user/nav') %>
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff;"><strong>Ürünler</strong></h3>
+            </div>
+            <canvas id="myChart" width="300" height="50"></canvas>
+            <div class="col-md-12 mt-3">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th style="width:50px; color: #fff">Id</th>
+                            <th style="color: #fff;">Ürün Adı</th>
+                            <th style="color: #fff;">Stok</th>
+                            <th style="color: #fff;">Fiyat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% urunler.forEach(urun => { %>
+                            <tr>
+                                <td style="color: #ccc;">
+                                    <%= urun.ProductID %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= urun.ProductName %> 
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= urun.Stock %>
+                                </td>
+                                <td style="color: #ccc;">
+                                    <%= urun.Price %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff;"><strong>Sipariş Ver - Bütçe: <%= butce %></strong></h3>
+                <div class="col-md-12 mt-3">
+                    <form id="siparis">
+                        <div class="row mb-3">
+                            <label for="Ürün Adı" class="col-sm-2 col-from-label" style="color: #ccc;">Ürün Adı</label>
+                            <div class="col-sm-8">
+                                <select class="form-control" id="urunAdi" name="urunAdi" onchange="hesaplanacakTutar()">
+                                    <option value="-1" selected>Ürün Seçiniz</option>
+                                    <% urunler.forEach(urun => { %>
+                                        <option value="<%= urun.ProductID %>"><%= urun.ProductName %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="Ürün Adı" class="col-sm-2 col-from-label" style="color: #ccc;">Adet</label>
+                            <div class="col-sm-8">
+                                <input type="number" class="form-control" id="adet" name="adet" oninput="hesaplanacakTutar()" placeholder="Miktar Giriniz" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label for="Ürün Adı" class="col-sm-2 col-from-label" style="color: #ccc;">Tutar</label>
+                            <div class="col-sm-8">
+                                <span id="toplamFiyat" style="color: white;">0</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-8 offset-sm-2">
+                                <button type="submit" class="btn btn-primary">Sipariş Ver</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
+        <div id="alert-container"></div>
+    </div>
 
+    <script>
+        
+
+        async function hesaplanacakTutar()
+        {
+            const adet = document.getElementById('adet').value;
+            const urunAdi = document.getElementById('urunAdi').value;
+            console.log("id:", urunAdi);
+            if(urunAdi == -1)
+            {
+                const toplamFiyat = document.getElementById('toplamFiyat');
+                toplamFiyat.innerText = 0;
+                return;
+            }
+            const urunler = <%- JSON.stringify(urunler) %>;
+            const urun = urunler.find(urun => urun.ProductID == urunAdi);
+            const fiyat = urun.Price;
+            const toplamFiyat = document.getElementById('toplamFiyat');
+            toplamFiyat.innerText = adet * fiyat;
+          
+
+            
+            /*
+            await db.execute('SELECT * FROM products WHERE ProductID = ?', [urunAdi], (err, result) => {
+                if(err)
+                {
+                    console.log(err);
+                    return;
+                }
+                const fiyat = result[0].Price;
+                const toplamFiyat = document.getElementById('toplamFiyat');
+                toplamFiyat.innerText = adet * fiyat;
+            });
+            */
+        }
+    </script>
+
+    <script>
+        async function fetchStockData() {
+            try {
+                // Backend'deki /api/stocks endpoint'inden veri çek
+                const response = await fetch('/api/stocks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                });
+                const data = await response.json();
+                return data; // API'den dönen Stock verileri
+            } catch (error) {
+                console.error('Veri çekme hatası:', error);
+                return [];
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            const stockData = fetchStockData(); // API'den veriyi al
+            const array = await stockData;
+            console.log(array);
+
+            const productNames = array.urunler
+            .filter(product => product.ProductName) 
+            .map(product => product.ProductName);
+            console.log(productNames);
+
+            const productStock = array.urunler
+            .filter(product => product.Stock)
+            .map(product => product.Stock);
+            console.log(productStock);
+
+            const backgroundColors = productStock.map(stock => stock < 50 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)');
+            const borderColors = productStock.map(stock => stock < 50 ? 'rgba(255, 99, 132, 1)' : 'rgba(75, 192, 192, 1)');
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: productNames, // Her ürün için bir etiket
+                    datasets: [{
+                        label: 'Stok Miktarı',
+                        data: productStock, // Veritabanından çekilen veriler
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+
+    <script>
+        const form = document.querySelector("#siparis");
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form); 
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch("/api/siparis_olustur", {
+                    method: "POST", 
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+                const data2 = await response.json();
+                const alertContainer = document.getElementById('alert-container');
+
+                if(data2.hata === 0)
+                {
+                    let alertDiv = alertContainer.querySelector('.alert');
+                    if(alertDiv)
+                    {
+                        alertDiv.className = `alert alert-success row justify-content-center`;
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = data2.message || "Sipariş oluşturuldu.";
+                    } else {
+                        alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-success row justify-content-center`;
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = data2.message || "Sipariş oluşturuldu.";
+                        alertContainer.appendChild(alertDiv);
+                    }
+                }
+                else
+                {
+                    let alertDiv = alertContainer.querySelector('.alert');
+                    if(alertDiv)
+                    {
+                        alertDiv.className = `alert alert-danger row justify-content-center`;
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = data2.message || "Bir hata oluştu.";
+                    } else {
+                        alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-danger row justify-content-center`;
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = data2.message || "Bir hata oluştu.";
+                        alertContainer.appendChild(alertDiv);
+                    }
+                }
+                /*
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log("Başarılı:", result);
+
+                    // Hata durumunda mesaj ve alert_type ayarları
+                    if (result.hata === 1) {
+                        const alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-danger row justify-content-center`; // Hata için kırmızı alert
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = result.message || "Bir hata oluştu."; // API'den gelen mesaj
+                        document.querySelector("#alert-container").appendChild(alertDiv);
+                    } else {
+                        const alertDiv = document.createElement("div");
+                        alertDiv.className = `alert alert-success row justify-content-center`; // Başarılı için yeşil alert
+                        alertDiv.role = "alert";
+                        alertDiv.innerText = result.message || "Başarılı!"; // API'den gelen mesaj
+                        document.querySelector("#alert-container").appendChild(alertDiv);
+                    }
+                } else {
+                    
+                }
+                */
+            } catch (error) {
+                console.error("Fetch Error:", error);
+            }
+        });
+
+    </script>
     
 </body>
 </html>

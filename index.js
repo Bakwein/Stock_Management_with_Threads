@@ -25,6 +25,9 @@ app.use("/static", express.static(path.join(__dirname,"public")));
 
 const moment = require('moment');
 
+const { Worker } = require('worker_threads');
+const workers = new Map();
+
 //routes
 app.use(loginRoutes);
 app.use("/admin", adminRoutes);
@@ -241,7 +244,7 @@ app.get("/api/delete_product/:id", async function(req, res) {
     const id = req.params.id;
     console.log(id);
 
-    const [kontrol,] = await db.execute("SELECT FROM products WHERE ProductID = ?", [id]);
+    const [kontrol,] = await db.execute("SELECT * FROM products WHERE ProductID = ?", [id]);
 
     if(kontrol.length == 0)
     {
@@ -271,6 +274,206 @@ app.post("/api/edit/:id", async function(req, res) {
     await db.execute("UPDATE products SET ProductName = ?, Stock = ?, Price = ? WHERE ProductID = ?", [product_data.urunAdi, product_data.stok, product_data.fiyat, id]);
 
     res.status(200).json({ success: true, message: 'Ürün başarıyla güncellendi. '});
+});
+
+app.post("/api/user/register", async function(req,res) {
+    const { nick, isim, tip, password, repassword } = req.body;
+    console.log(nick, isim, tip, password, repassword);
+
+    if(nick.length > 255 || nick.length <= 0)
+    {
+        res.json({ message: 'Kullanıcı adı 255 karakterden uzun olamaz!', hata: 1 });
+        return;
+    }
+    if(password.length <= 0)
+    {
+        res.json({ message: 'Şifre boş olamaz!', hata: 1 });
+        return;
+    }
+    if(isim.length <= 0)
+    {
+        res.json({ message: 'İsim boş olamaz!', hata: 1 });
+    }
+    if(password != repassword)
+    {
+        res.json({ message: 'Şifreler eşleşmiyor!', hata: 1 });
+    }
+
+    if(tip == 0)
+    {
+        tiptype = 'Normal';
+    }
+    else if(tip == 1)
+    {
+        tiptype = 'Premium';
+    }
+
+    try{
+
+        const [kullanici,] = await db.execute("SELECT * FROM customers WHERE CustomerNickname = ?", [nick]);
+
+        if(kullanici != 0)
+        {
+            res.json({ message: 'Nickname önceden alınmış!', hata: 1 });
+        }
+
+        let hashedPassword = await bcrypt.hash(password, 10);
+
+        await db.execute("INSERT INTO customers (CustomerNickname, CustomerName, CustomerType, Password, Budget, TotalSpent) VALUES (?,?,?,?,0,0)", [nick, isim, tiptype, hashedPassword]);
+
+        res.json({ message: 'Kayıt Oluşturuldu.', hata: 0 });
+    }
+    catch(e)
+    {
+        res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
+    }
+});
+
+app.post('/api/increase-budget', async (req, res) => {
+    const { customerId } = req.body; // Gövde verisinden müşteri ID'sini alın
+    console.log(customerId);
+    if (!customerId) {
+        return res.status(400).json({ error: 'CustomerID gerekli!' });
+    }
+
+    try {
+        // Veritabanında Budget değerini artır
+        const [result] = await db.execute(`
+            UPDATE customers 
+            SET Budget = Budget + 1 
+            WHERE CustomerID = ?`
+        , [customerId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Müşteri bulunamadı!' });
+        }
+
+        res.json({ success: true, message: 'Budget artırıldı!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Sunucu hatası' });
+    }
+});
+
+
+app.post("/api/siparis_olustur", async function(req, res) {
+    //console.log(req.body);
+    const { urunAdi , adet } = req.body;
+    console.log(urunAdi, adet);
+
+    try{
+        const [urunler,] = await db.execute("SELECT * FROM products WHERE ProductID = ?", [urunAdi]);
+
+        if(urunler.length == 0)
+        {
+            res.json({ message: 'Ürün bulunamadı.', hata: 1 });
+            return;
+        }
+
+        const urun = urunler[0];
+        const ProductIDR = urun.ProductID;
+        const urunFiyat = urun.Price;
+        const totalPrice = urunFiyat * adet;
+        console.log(totalPrice);
+
+        /*if(adet > urunStok)
+        {
+            res.json({ message: 'Stok yetersiz.', hata: 1 });
+            return;
+        }*/
+
+        const [kontrol,] = await db.execute("SELECT * FROM orders WHERE ProductIDR = ? AND OrderStatus = ?", [ProductIDR, 0]);
+
+        if(kontrol.length > 0)
+        {
+            res.json({ message: 'Bu ürün için zaten bekleyen sipariş var.', hata: 1 });
+            return;
+        }
+
+        const token = req.cookies.token;
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const CustomerIDR = decoded.id;
+
+        const [musteri,] = await db.execute("SELECT * FROM customers WHERE CustomerID = ?", [CustomerIDR]);
+        if(musteri.length == 0)
+        {
+            res.json({ message: 'Müşteri bulunamadı.', hata: 1 });
+            return;
+        }
+        const musteriAdi = musteri[0].CustomerName;
+        const musteriTipi = musteri[0].CustomerType;
+        const dateTime = moment().format('YYYY-MM-DD HH:mm:ss');
+        console.log(dateTime);
+
+        //siparis olusturma
+        await db.execute("INSERT INTO orders (ProductIDR, OrderDate, OrderStatus, Quantity, TotalPrice, CustomerIDR) VALUES (?,?,?,?,?,?)", [ProductIDR, dateTime, 0, adet, totalPrice, CustomerIDR]);
+        console.log("xd");
+
+        const [orders,] = await db.execute("SELECT * FROM orders WHERE OrderDate = ?", [dateTime]);
+        if(orders.length == 0)
+        {
+            res.json({ message: 'Sipariş oluşturulamadı.', hata: 1 });
+            return;
+        }
+
+        
+        const orderID = orders[0].OrderID;
+        console.log(orderID);
+        const log_string = musteriAdi + " (" + musteriTipi + ") " + " adlı müşteri " + urun.ProductName + " ürününden " + adet + " adet sipariş verdi";
+        //log olusturma
+        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?,?,?,?,?)", [CustomerIDR, orderID, dateTime, 0, log_string]);
+
+        //thread
+        const worker = new Worker('./orderWorker.js', {
+            workerData: {
+                orderId: orderID,
+                customerId: CustomerIDR,
+                timeout: 1 * 60 * 1000 // 5 dakika
+            }
+        });
+
+        workers.set(orderID, worker); //liste thread'i ekle
+        
+        worker.on('message', async function(message){
+            if(message.type === "timeout")
+            {
+                console.log(`${message.orderId} idli sipariş iptal edildi.`);
+                workers.delete(orderID);
+                /*
+                const [order,] = await db.execute(`SELECT * FROM orders WHERE OrderID = ?`, [message.orderId]);
+                if(order.length > 0 && order[0].OrderStatus === 0)
+                {
+                    await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, message.orderId]);
+                    const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                    const text = message.orderId + " idli sipariş zaman aşımından dolayı iptal edildi";
+                    //log olusturma
+                    await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [CustomerIDR, message.orderId, time, -1, text]);
+                }
+                */
+            }
+        });
+
+        worker.on('error', function(err){
+            console.log(err.message);
+            workers.delete(orderID);
+        });
+
+        worker.on('exit', function(code){
+            if(code !== 0)
+            {
+                console.log(`Worker thread hatasıyla kapatıldı. Code: ${code}`);
+            }
+            workers.delete(orderID);
+        });
+
+        res.json({ message: 'Sipariş başarıyla oluşturuldu.', hata: 0 });
+    }
+    catch(e)
+    {
+        res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
+    }
+
+    
 });
 
 app.listen(3001, function()
