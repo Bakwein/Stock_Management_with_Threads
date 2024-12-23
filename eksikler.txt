@@ -1,0 +1,7 @@
+Bir müşteri, her üründen en fazla 5 adet satın alabilir
+
+satın alma işlemi -> bir mutex veya semophore lazım kı cakismalar olmasin!
+
+listeye atılınca set yapma olayı!
+
+Admin, ürün ve stok bilgilerine erişirken diğer işlemleri beklemeye alır

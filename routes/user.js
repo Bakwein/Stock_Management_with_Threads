@@ -185,6 +185,30 @@ router.get("/register", function(req, res){
     });
 });
 
+router.get('/profile_update', async function(req, res)
+{
+    var ret = cookie_control(req, res);
+    if(ret === 1)
+    {
+        return;
+    }
+
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const id = decoded.id;
+
+    const [kullanici,] = await db.execute("SELECT * FROM customers WHERE CustomerID = ?", [id]);
+    if(kullanici.length === 0)
+    {
+        res.redirect("/user/logout");
+    }
+
+    res.render("user/profile_update", {
+        title: "Profil Güncelleme",
+        kullanici: kullanici[0],
+    });
+});
+
 router.get("/profile", async function(req,res){
     var ret = cookie_control(req, res);
     const token = req.cookies.token;
@@ -195,10 +219,12 @@ router.get("/profile", async function(req,res){
         return;
     }
     const [kullanici,] = await db.execute("SELECT * FROM customers WHERE CustomerID = ?", [id]);
+    const [siparisler,] = await db.execute("SELECT * FROM orders WHERE CustomerIDR = ?", [id]); //onaylanmışa göre sonra bakılacak
 
     res.render("user/profile", {
         title: "Profilim",
-        kullanici: kullanici[0]
+        kullanici: kullanici[0],
+        siparisler: siparisler,
     });
 });
 

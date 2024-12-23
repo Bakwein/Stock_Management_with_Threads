@@ -330,25 +330,25 @@ app.post("/api/user/register", async function(req,res) {
 });
 
 app.post('/api/increase-budget', async (req, res) => {
-    const { customerId } = req.body; // Gövde verisinden müşteri ID'sini alın
-    console.log(customerId);
-    if (!customerId) {
-        return res.status(400).json({ error: 'CustomerID gerekli!' });
+    const { customerId, amount } = req.body; // customerId ve artırma miktarını alın
+
+    if (!customerId || !amount) {
+        return res.status(400).json({ error: 'CustomerID ve amount gerekli!' });
     }
 
     try {
         // Veritabanında Budget değerini artır
         const [result] = await db.execute(`
             UPDATE customers 
-            SET Budget = Budget + 1 
+            SET Budget = Budget + ? 
             WHERE CustomerID = ?`
-        , [customerId]);
+        , [amount, customerId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Müşteri bulunamadı!' });
         }
 
-        res.json({ success: true, message: 'Budget artırıldı!' });
+        res.json({ success: true, message: `Budget ${amount} artırıldı! `});
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Sunucu hatası' });
@@ -500,6 +500,62 @@ app.get('/api/threads', async function(req, res){
 
 
     res.json(threadList);
+});
+
+app.post("/api/user/profile_update_render", async function(req,res) {
+    const { nick, isim, tip, password, repassword } = req.body;
+    console.log(nick, isim, tip, password, repassword);
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const CustomerIDR = decoded.id;
+
+    if(nick.length > 255 || nick.length <= 0)
+    {
+        res.json({ message: 'Kullanıcı adı 255 karakterden uzun olamaz!', hata: 1 });
+        return;
+    }
+    if(password.length <= 0)
+    {
+        res.json({ message: 'Şifre boş olamaz!', hata: 1 });
+        return;
+    }
+    if(isim.length <= 0)
+    {
+        res.json({ message: 'İsim boş olamaz!', hata: 1 });
+    }
+    if(password != repassword)
+    {
+        res.json({ message: 'Şifreler eşleşmiyor!', hata: 1 });
+    }
+
+    if(tip == 0)
+    {
+        tiptype = 'Normal';
+    }
+    else if(tip == 1)
+    {
+        tiptype = 'Premium';
+    }
+
+    try{
+
+        const [kullanici,] = await db.execute("SELECT * FROM customers WHERE CustomerNickname = ?", [nick]);
+
+        if(kullanici != 0)
+        {
+            res.json({ message: 'Nickname önceden alınmış!', hata: 1 });
+        }
+
+        let hashedPassword = await bcrypt.hash(password, 10);
+
+        await db.execute("UPDATE customers SET CustomerNickname = ?, CustomerName = ?, CustomerType = ?, Password = ? WHERE CustomerID = ?", [nick, isim, tiptype, hashedPassword, CustomerIDR]);
+
+        res.json({ message: 'Kayıt Oluşturuldu.', hata: 0 });
+    }
+    catch(e)
+    {
+        res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
+    }
 });
 
 app.listen(3001, function()
