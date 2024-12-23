@@ -185,6 +185,32 @@ router.get("/register", function(req, res){
     });
 });
 
+router.get("/orders", async function(req, res){
+    var ret = cookie_control(req, res);
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const id = decoded.id;
+    if(ret == 1)
+    {
+        return;
+    }
+
+    console.log(id);
+    const [iptal,] = await db.execute("SELECT orders.TotalPrice, orders.OrderID, customers.CustomerNickname, products.ProductName, orders.Quantity, orders.OrderDate FROM orders JOIN customers ON orders.CustomerIDR = customers.CustomerID JOIN products ON orders.ProductIDR = products.ProductID WHERE CustomerIDR = ? AND OrderStatus = ?", [id, -1]);
+    const [bekliyor,] = await db.execute("SELECT orders.TotalPrice, orders.OrderID, customers.CustomerNickname, products.ProductName, orders.Quantity, orders.OrderDate FROM orders JOIN customers ON orders.CustomerIDR = customers.CustomerID JOIN products ON orders.ProductIDR = products.ProductID WHERE CustomerIDR = ? AND OrderStatus = ?", [id, 0]);
+    const [isleniyor,] = await db.execute("SELECT orders.TotalPrice, orders.OrderID, customers.CustomerNickname, products.ProductName, orders.Quantity, orders.OrderDate FROM orders JOIN customers ON orders.CustomerIDR = customers.CustomerID JOIN products ON orders.ProductIDR = products.ProductID WHERE CustomerIDR = ? AND OrderStatus = ?", [id, 1]);
+    const [tamamlandi,] = await db.execute("SELECT orders.TotalPrice, orders.OrderID, customers.CustomerNickname, products.ProductName, orders.Quantity, orders.OrderDate FROM orders JOIN customers ON orders.CustomerIDR = customers.CustomerID JOIN products ON orders.ProductIDR = products.ProductID WHERE CustomerIDR = ? AND OrderStatus = ?", [id, 2]);
+
+    res.render("user/orders", {
+        title: "Siparişlerim",
+        iptal: iptal,
+        bekliyor: bekliyor,
+        isleniyor: isleniyor,
+        tamamlandi: tamamlandi
+    });
+});
+
+
 router.get('/profile_update', async function(req, res)
 {
     var ret = cookie_control(req, res);

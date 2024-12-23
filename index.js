@@ -25,8 +25,14 @@ app.use("/static", express.static(path.join(__dirname,"public")));
 
 const moment = require('moment');
 
+const { EventEmitter } = require('events');
+EventEmitter.defaultMaxListeners = 100;
+
 const { Worker } = require('worker_threads');
 const workers = new Map();
+
+const { Mutex } = require('async-mutex');
+const productMutexes = new Map();
 
 //routes
 app.use(loginRoutes);
@@ -37,6 +43,11 @@ const bodyParser = require('body-parser');
 
 require("./createtables");
 
+const priortyQueueService = require('./priortyQueueService');
+
+app.get("/api/queue", function(req,res) {
+    res.json(priortyQueueService.items);
+});
 
 app.post("/api/create_product", async function(req,res)
 {
@@ -428,6 +439,7 @@ app.post("/api/siparis_olustur", async function(req, res) {
         const worker = new Worker('./orderWorker.js', {
             workerData: {
                 orderId: orderID,
+                productId: ProductIDR,
                 customerId: CustomerIDR,
                 customerType: musteriTipi,
                 timeout: 5 * 60 * 1000 // 5 dakika
@@ -483,13 +495,15 @@ app.get('/api/threads', async function(req, res){
     const workerPromises = Array.from(workers).map(([orderId, worker]) => {
         return new Promise((resolve) => {
             // Thread bilgilerini başlat
-            const threadData = { orderId, oncelikSkoru: null };
+            const threadData = { orderId, productId: null, oncelikSkoru: null, beklemeSuresi: null };
             threadList.push(threadData);
 
-            // Worker'dan gelen ilk mesajı dinle
+            // Worker'dan gelen mesajı dinle
             worker.on('message', (message) => {
                 if (message.type === "oncelikSkoru") {
+                    threadData.productId = message.productId;
                     threadData.oncelikSkoru = message.oncelikSkoru;
+                    threadData.beklemeSuresi = message.beklemeSuresi;
                     resolve(); // Promise'i çözüyor
                 }
             });
@@ -556,6 +570,144 @@ app.post("/api/user/profile_update_render", async function(req,res) {
     {
         res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
     }
+});
+
+app.post("/api/process_orders", async function(req, res) {
+    try{
+        const ordersToProcess = [];
+        while(!priortyQueueService.isEmpty())
+        {
+            const order = priortyQueueService.dequeue();
+            ordersToProcess.push(order);
+        }
+
+        if(ordersToProcess.length == 0)
+        {
+            res.json({ message: 'İşlenecek sipariş yok.', hata: 1 });
+            return;
+        }
+
+        //Tüm siparişler eş zamanlı eşlenecek
+        const results = await Promise.all(ordersToProcess.map(async function(order)  {
+            const {orderId, productId, oncelikSkoru, beklemeSuresi} = order;
+            // console.log(`Sipariş ID: ${orderId}, Ürün ID: ${productId}, Öncelik Skoru: ${oncelikSkoru}, Bekleme Süresi: ${beklemeSuresi}`);
+            let mutex = productMutexes.get(productId);
+            if (!mutex) {
+                mutex = new Mutex();
+                productMutexes.set(productId, mutex);
+            }
+            console.log("mutex", mutex, "***");
+            const worker = workers.get(orderId);
+            //mutex
+            return mutex.runExclusive(async function() {
+                try{
+                    const [rows,] = await db.execute(`SELECT Stock FROM products WHERE ProductID = ?`, [productId]);
+                    if(rows.length === 0)
+                    {
+                        //log olustur
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderId + " idli sipariş işlenirken bir hata oluştu";
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [order.customerId, orderId, time, -1, text]);
+
+                        // sipris status 3 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+
+                        //worker sonlandır
+                        if(worker)
+                        {
+                            worker.postMessage({ type: "approve" });
+                        }
+
+                        throw new Error(`Ürün bulunamadı: ${productId}`);
+                    }
+
+                    //order'ı al
+                    const [orderRows,] = await db.execute(`SELECT * FROM orders WHERE OrderID = ?`, [orderId]);
+                    if(orderRows.length === 0)
+                    {
+                        //log
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderId + " idli sipariş işlenirken bir hata oluştu";
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [order.customerId, orderId, time, -1, text]);
+
+                        // sipris status 3 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+
+                        //worker sonlandır
+                        if(worker)
+                        {
+                            worker.postMessage({ type: "approve" });
+                        }
+
+                        throw new Error(`Sipariş bulunamadı: ${orderId}`);
+                    }
+
+                    //stok kontrolü
+                    if(rows[0].Stock < orderRows[0].Quantity)
+                    {
+                        //log olustur
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderId + " idli sipariş stok yetersizliğinden dolayı iptal edildi";
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, -1, text]);
+
+                        // sipris status 3 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+
+                        // sipris status 3 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+
+                        //worker sonlandır
+                        if(worker)
+                        {
+                            worker.postMessage({ type: "approve" });
+                        }
+
+
+                        throw new Error(`Stok yetersiz: ${rows[0].Stock} < ${orderRows[0].Quantity}`);
+                    }
+
+                    //stok azalt
+                    await db.execute(`UPDATE products SET Stock = Stock - ? WHERE ProductID = ?`, [orderRows[0].Quantity, productId]);
+
+                    //siparişi işleme
+                    await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [2, orderId]);
+
+                    //log oluştur
+                    const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                    const text = orderId + " idli sipariş onaylandı";
+                    await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 2, text]);
+
+                    //thread sonlanma mesajı
+                    
+                    if(worker)
+                    {
+                        worker.postMessage({ type: "approve" });
+                    }
+
+                    console.log(`Sipariş ID: ${orderId} işlendi`);
+
+                    // mutex serbest bırakılmalı mı? - BAKILACAK
+                    
+                    return { orderId: orderId, success: true, message: 'Sipariş başarıyla işlendi.' };
+
+                }
+                catch(e)
+                {
+                    console.log(e);
+                    return { orderId: orderId, success: false, message: 'Bir hata oluştu.' };
+                }
+            });
+        })
+    );
+    res.json({ message: 'Siparişler işlendi.', hata: 0, results });
+
+    }
+    catch(e)
+    {
+        res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
+    }
+
+    console.log("test");
 });
 
 app.listen(3001, function()

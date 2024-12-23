@@ -8,8 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const moment = require('moment');
 const { title } = require("process");
-const { EventEmitter } = require('events');
-EventEmitter.defaultMaxListeners = 20;
+
 
 function cookie_control(req, res)
 {

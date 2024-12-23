@@ -18,7 +18,7 @@
     <div class="container mt-3">
          <div class="col-md-12 mt-3">
             <h3 style="color: #fff;"><strong>Threadlerin Öncelik Durumları</strong></h3>
-            <canvas id="myChart" width="400" height="200"></canvas>
+            <canvas id="myChart" width="300" height="75"></canvas>
             <h3 style="color: #fff;"><strong>Onay Bekleyen Siparişler</strong></h3>
             <button class="btn btn-success" onclick="tumunuOnayla()">Tümünü Onayla</button>
             <div class="row">
@@ -117,25 +117,49 @@
                 const threadOrderIDs = threads
                 .filter(thread => thread.orderId) 
                 .map(thread => thread.orderId);
-                console.log(threadOrderIDs);
+                //console.log(threadOrderIDs);
 
                 const threadOncelikSkoru = threads
                 .filter(thread => thread.oncelikSkoru)
                 .map(thread => thread.oncelikSkoru);
-                console.log(threadOncelikSkoru);
+                //console.log(threadOncelikSkoru);
+
+                const beklemeSuresi = threads
+                .filter(thread => thread.beklemeSuresi)
+                .map(thread => thread.beklemeSuresi);
+                console.log(beklemeSuresi);
 
                 const backgroundColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)');
                 const borderColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 1)' : 'rgba(75, 192, 192, 1)');
+
+                const beklemeSuresiColors = beklemeSuresi.map(sure => sure > 200 ? 'rgba(54, 162, 235, 0.2)' : 'rgba(153, 102, 255, 0.2)');
+                const beklemeSuresiBorderColors = beklemeSuresi.map(sure => sure > 200 ? 'rgba(54, 162, 235, 1)' : 'rgba(153, 102, 255, 1)');
+
+
                 myChart.data.labels = threadOrderIDs;
                 myChart.data.datasets[0].data = threadOncelikSkoru;
                 myChart.data.datasets[0].backgroundColor = backgroundColors;
                 myChart.data.datasets[0].borderColor = borderColors;
+
+                if(myChart.data.datasets.length < 2){
+                    myChart.data.datasets.push({
+                        label: 'Bekleme Süresi',
+                        data: beklemeSuresi,
+                        backgroundColor: beklemeSuresiColors,
+                        borderColor: beklemeSuresiBorderColors,
+                        borderWidth: 1
+                    });
+                } else {
+                    myChart.data.datasets[1].data = beklemeSuresi;
+                    myChart.data.datasets[1].backgroundColor = beklemeSuresiColors;
+                    myChart.data.datasets[1].borderColor = beklemeSuresiBorderColors;
+                }
+
                 myChart.update();
             }, 1000);
         });
-        
-
         </script>
+
         <script>
             async function uruneGoreOnayla(productID) {
                 console.log(productID);
@@ -143,7 +167,15 @@
 
 
             async function tumunuOnayla() {
-                console.log('Tümünü onayla butonuna tıklandı.');
+                const response = await fetch('http://localhost:3001/api/process_orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                });
+
+                const result = await response.json();
+                console.log(result);
             }
 
 

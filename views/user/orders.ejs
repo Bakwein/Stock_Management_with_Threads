@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head') %>
+    <style>
+        body {
+            /* display: flex; */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #2A2B33;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/user/nav') %>
+    
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff; font: bold;">İptal Olan Siparişlerim</h3>
+                <% if (iptal.length > 0) { %>
+                    <% iptal.forEach(ipt => { %>
+                        <div class="card mb-3">
+                            <div class="row">
+                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                    <div class="spinner-grow text-danger" role="status" >
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <a style="text-decoration: none; color: black;"> <strong>Sipariş Numarası:</strong> <%= ipt.OrderID %> </a>
+                                        </h5>
+                                        <p class="card-text" style="margin-top: 15px;"><strong> <%= ipt.CustomerNickname %> </strong>, toplam <strong><%= ipt.TotalPrice %> </strong> ücrete <strong><%= ipt.Quantity %> </strong> tane <strong><%= ipt.ProductName %> </strong> sipariş etmişti.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    
+                                </div>
+                                <div class="col-md-2 d-flex flex-column justify-content-center align-items-center text-center">
+                                    <p style="margin-top: 15px"><strong>Tarih: </strong><%= new Date(ipt.OrderDate).toISOString().split('T')[0] %></p>
+                                    <p><strong>Saat: </strong><%= new Date(ipt.OrderDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) %></p>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <div class="card-body d-flex justify-content-end">
+                                        <h5>İPTAL EDİLDİ.</h5>
+                                    </div>
+                                </div>                                
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="alert alert-warning text-center" role="alert">
+                        İptal edilen sipariş bulunmamaktadır.
+                    </div>
+                <% } %>
+            </div>
+
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff; font: bold;">Onay Bekleyen Siparişlerim</h3>
+                <% if (bekliyor.length > 0) { %>
+                    <% bekliyor.forEach(bek => { %>
+                        <div class="card mb-3">
+                            <div class="row">
+                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                    <div class="spinner-border text-secondary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <a style="text-decoration: none; color: black;"> <strong>Sipariş Numarası:</strong> <%= bek.OrderID %> </a>
+                                        </h5>
+                                        <p class="card-text" style="margin-top: 15px;"><strong> <%= bek.CustomerNickname %> </strong>, toplam <strong><%= bek.TotalPrice %> </strong> ücrete <strong><%= bek.Quantity %> </strong> tane <strong><%= bek.ProductName %> </strong> sipariş etti.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <span id="<%= bek.OrderID %>" style="color: black;">0</span>
+                                </div>
+                                <div class="col-md-2 d-flex flex-column justify-content-center align-items-center text-center">
+                                    <p style="margin-top: 15px"><strong>Tarih: </strong><%= new Date(bek.OrderDate).toISOString().split('T')[0] %></p>
+                                    <p><strong>Saat: </strong><%= new Date(bek.OrderDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) %></p>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <div class="card-body d-flex justify-content-end">
+                                        <h5>Onay Bekleniyor.</h5>
+                                    </div>
+                                </div>                                
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="alert alert-warning text-center" role="alert">
+                        Onay bekleyen sipariş bulunmamaktadır.
+                    </div>
+                <% } %>
+            </div>
+
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff; font: bold;">İşlenen Siparişlerim</h3>
+                <% if (isleniyor.length > 0) { %>
+                    <% isleniyor.forEach(isl => { %>
+                        <div class="card mb-3">
+                            <div class="row">
+                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                    <div class="spinner-border text-warning" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <a style="text-decoration: none; color: black;"> <strong>Sipariş Numarası:</strong> <%= isl.OrderID %> </a>
+                                        </h5>
+                                        <p class="card-text" style="margin-top: 15px;"><strong> <%= isl.CustomerNickname %> </strong>, toplam <strong><%= isl.TotalPrice %> </strong> ücrete <strong><%= isl.Quantity %> </strong> tane <strong><%= isl.ProductName %> </strong> sipariş etti.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <span id="<%= isleniyor.OrderID %>" style="color: black;">0</span>
+                                </div>
+                                <div class="col-md-2 d-flex flex-column justify-content-center align-items-center text-center">
+                                    <p style="margin-top: 15px"><strong>Tarih: </strong><%= new Date(isl.OrderDate).toISOString().split('T')[0] %></p>
+                                    <p><strong>Saat: </strong><%= new Date(isl.OrderDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) %></p>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <div class="card-body d-flex justify-content-end">
+                                        <h5>İşleniyor.</h5>
+                                    </div>
+                                </div>                                
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="alert alert-warning text-center" role="alert">
+                        İşlenen sipariş bulunmamaktadır.
+                    </div>
+                <% } %>
+            </div>
+
+            <div class="col-md-12 mt-3">
+                <h3 style="color: #fff; font: bold;">Tamamlanan Siparişlerim</h3>
+                <% if (tamamlandi.length > 0) { %>
+                    <% tamamlandi.forEach(tam => { %>
+                        <div class="card mb-3">
+                            <div class="row">
+                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                    <div class="spinner-grow text-success" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <a style="text-decoration: none; color: black;"> <strong>Sipariş Numarası:</strong> <%= tam.OrderID %> </a>
+                                        </h5>
+                                        <p class="card-text" style="margin-top: 15px;"><strong> <%= tam.CustomerNickname %> </strong>, toplam <strong><%= tam.TotalPrice %> </strong> ücrete <strong><%= tam.Quantity %> </strong> tane <strong><%= tam.ProductName %> </strong> sipariş etti.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-flex flex-column justify-content-center align-items-center text-center">
+                                    <p style="margin-top: 15px"><strong>Tarih: </strong><%= new Date(tam.OrderDate).toISOString().split('T')[0] %></p>
+                                    <p><strong>Saat: </strong><%= new Date(tam.OrderDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) %></p>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-center">
+                                    <div class="card-body d-flex justify-content-end">
+                                        <h3>Tamamlandı.</h3>
+                                    </div>
+                                </div>                                
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="alert alert-warning text-center" role="alert">
+                        Tamamlanan sipariş bulunmamaktadır.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () 
+        {
+            setInterval(async function()
+            {
+                const response = await fetch('http://localhost:3001/api/threads', 
+                {
+                    method: 'GET',
+                    headers: 
+                    {
+                        'Content-Type': 'application/json'
+                    },
+                });
+                const data = await response.json();
+                data.forEach((thread) => {
+                    console.log(thread);
+                    const span_thread = document.getElementById(thread.orderId);
+                    span_thread.innerText  = `${thread.oncelikSkoru}`;
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

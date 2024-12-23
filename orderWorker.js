@@ -2,10 +2,13 @@ const { parentPort, workerData } = require('worker_threads');
 const db = require("./data/db");
 const moment = require('moment');
 
-const { orderId, customerId, customerType,  timeout } = workerData;
+const { orderId, customerId, productId, customerType,  timeout } = workerData;
 
 let beklemeSuresi = 0;
 const beklemeSuresiAgirligi = 0.5;
+
+const premiumOncelikSkoru = 50;
+const normalOncelikSkoru = 10;
 
 async function monitorOrder(){
 
@@ -14,14 +17,16 @@ async function monitorOrder(){
         const interval = setInterval(async function(){
             beklemeSuresi += 1;
             oncelikSkoru = (customerType === "Premium") 
-            ? 15 + beklemeSuresiAgirligi * beklemeSuresi 
-            : 10 + beklemeSuresiAgirligi * beklemeSuresi;
+            ? premiumOncelikSkoru + beklemeSuresiAgirligi * beklemeSuresi 
+            : normalOncelikSkoru + beklemeSuresiAgirligi * beklemeSuresi;
 
             //bekleme suresi mesajı
             parentPort.postMessage({
                 type: "oncelikSkoru",
                 orderId: orderId,
-                oncelikSkoru: oncelikSkoru
+                productId: productId,
+                oncelikSkoru: oncelikSkoru,
+                beklemeSuresi: beklemeSuresi
             });
 
             //console.log("order id:" + orderId  + " oncelikSkoru: " + oncelikSkoru);        
@@ -55,11 +60,11 @@ async function monitorOrder(){
             parentPort.close();
         }, timeout);
 
-        
 
         //admin onayı bekleme
         parentPort.on("message", async function(message){
             if(message.type = "approve"){
+                console.log("approve message for order id: " + orderId);
                 clearTimeout(timer);
                 parentPort.close();
             }
