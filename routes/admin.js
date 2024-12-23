@@ -8,6 +8,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const moment = require('moment');
 const { title } = require("process");
+const { EventEmitter } = require('events');
+EventEmitter.defaultMaxListeners = 20;
 
 function cookie_control(req, res)
 {
@@ -150,11 +152,22 @@ router.get("/approve_orders", async function (req, res){
     const [products,] = await db.execute("SELECT * FROM products");
     const [customers,] = await db.execute("SELECT * FROM customers");
 
+    //fetching thread list
+    /*const response = await fetch('http://localhost:3001/api/threads', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+    const data = await response.json();
+    console.log(data);*/
+
     res.render("admin/approve_orders", {
         title: "Onay Bekleyen Siparişler",
         orders: orders,
         products: products,
-        customers: customers
+        customers: customers,
+        //threads: data
     });
 });
 

@@ -16,7 +16,15 @@ async function monitorOrder(){
             oncelikSkoru = (customerType === "Premium") 
             ? 15 + beklemeSuresiAgirligi * beklemeSuresi 
             : 10 + beklemeSuresiAgirligi * beklemeSuresi;
-            console.log("order id:" + orderId  + " oncelikSkoru: " + oncelikSkoru);        
+
+            //bekleme suresi mesajı
+            parentPort.postMessage({
+                type: "oncelikSkoru",
+                orderId: orderId,
+                oncelikSkoru: oncelikSkoru
+            });
+
+            //console.log("order id:" + orderId  + " oncelikSkoru: " + oncelikSkoru);        
         },  1000); // 1 saniyede 1
 
 

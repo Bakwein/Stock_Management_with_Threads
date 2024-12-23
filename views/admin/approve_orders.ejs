@@ -11,11 +11,14 @@
             background: #2A2B33;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <%- include('../partials/admin/nav') %>
     <div class="container mt-3">
          <div class="col-md-12 mt-3">
+            <h3 style="color: #fff;"><strong>Threadlerin Öncelik Durumları</strong></h3>
+            <canvas id="myChart" width="400" height="200"></canvas>
             <h3 style="color: #fff;"><strong>Onay Bekleyen Siparişler</strong></h3>
             <div class="row">
                 <div class="col-md-12 mt-3">
@@ -57,7 +60,81 @@
             </div>
         </div>
         
+        <script>
+            document.addEventListener("DOMContentLoaded", async function () {
+            /*const threads =  JSON.stringify(threads); // API'den veriyi al
+            console.log(threads);
 
+            const threadOrderIDs = threads
+            .filter(thread => thread.orderId) 
+            .map(thread => thread.orderId);
+            console.log(threadOrderIDs);
+
+            const threadOncelikSkoru = threads
+            .filter(thread => thread.oncelikSkoru)
+            .map(thread => thread.oncelikSkoru);
+            console.log(threadOncelikSkoru);
+
+            const backgroundColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)');
+            const borderColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 1)' : 'rgba(75, 192, 192, 1)');*/
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    //labels: threadOrderIDs, // Her ürün için bir etiket
+                    labels: [],
+                    datasets: [{
+                        label: 'Öncelik Skoru',
+                        //data: threadOncelikSkoru, // Veritabanından çekilen veriler
+                        data: [],
+                        //backgroundColor: backgroundColors,
+                        //borderColor: borderColors,
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            setInterval(async function(){
+                const response = await fetch('http://localhost:3001/api/threads', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                });
+                const threads = await response.json();
+                console.log(threads);
+
+                const threadOrderIDs = threads
+                .filter(thread => thread.orderId) 
+                .map(thread => thread.orderId);
+                console.log(threadOrderIDs);
+
+                const threadOncelikSkoru = threads
+                .filter(thread => thread.oncelikSkoru)
+                .map(thread => thread.oncelikSkoru);
+                console.log(threadOncelikSkoru);
+
+                const backgroundColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)');
+                const borderColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 1)' : 'rgba(75, 192, 192, 1)');
+                myChart.data.labels = threadOrderIDs;
+                myChart.data.datasets[0].data = threadOncelikSkoru;
+                myChart.data.datasets[0].backgroundColor = backgroundColors;
+                myChart.data.datasets[0].borderColor = borderColors;
+                myChart.update();
+            }, 1000);
+        });
+        
+
+        </script>
     
 </body>
 </html>

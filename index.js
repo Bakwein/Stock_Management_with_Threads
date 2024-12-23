@@ -430,7 +430,7 @@ app.post("/api/siparis_olustur", async function(req, res) {
                 orderId: orderID,
                 customerId: CustomerIDR,
                 customerType: musteriTipi,
-                timeout: 1 * 60 * 1000 // 5 dakika
+                timeout: 5 * 60 * 1000 // 5 dakika
             }
         });
 
@@ -475,6 +475,31 @@ app.post("/api/siparis_olustur", async function(req, res) {
         res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
     }
     
+});
+
+
+app.get('/api/threads', async function(req, res){
+    const threadList = [];
+    const workerPromises = Array.from(workers).map(([orderId, worker]) => {
+        return new Promise((resolve) => {
+            // Thread bilgilerini başlat
+            const threadData = { orderId, oncelikSkoru: null };
+            threadList.push(threadData);
+
+            // Worker'dan gelen ilk mesajı dinle
+            worker.on('message', (message) => {
+                if (message.type === "oncelikSkoru") {
+                    threadData.oncelikSkoru = message.oncelikSkoru;
+                    resolve(); // Promise'i çözüyor
+                }
+            });
+        });
+    });
+
+    await Promise.all(workerPromises); // Tüm thread'lerin oncelikSkoru mesajlarını almasını bekleyin
+
+
+    res.json(threadList);
 });
 
 app.listen(3001, function()
