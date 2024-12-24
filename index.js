@@ -616,10 +616,13 @@ app.post("/api/process_orders", async function(req, res) {
                         if(worker)
                         {
                             worker.postMessage({ type: "approve" });
+                            workers.delete(orderId);
                         }
 
                         throw new Error(`Ürün bulunamadı: ${productId}`);
                     }
+
+
 
                     //order'ı al
                     const [orderRows,] = await db.execute(`SELECT * FROM orders WHERE OrderID = ?`, [orderId]);
@@ -637,6 +640,7 @@ app.post("/api/process_orders", async function(req, res) {
                         if(worker)
                         {
                             worker.postMessage({ type: "approve" });
+                            workers.delete(orderId);
                         }
 
                         throw new Error(`Sipariş bulunamadı: ${orderId}`);
@@ -660,6 +664,7 @@ app.post("/api/process_orders", async function(req, res) {
                         if(worker)
                         {
                             worker.postMessage({ type: "approve" });
+                            workers.delete(orderId);
                         }
 
 
@@ -682,6 +687,7 @@ app.post("/api/process_orders", async function(req, res) {
                     if(worker)
                     {
                         worker.postMessage({ type: "approve" });
+                        workers.delete(orderId);
                     }
 
                     console.log(`Sipariş ID: ${orderId} işlendi`);
@@ -694,17 +700,21 @@ app.post("/api/process_orders", async function(req, res) {
                 catch(e)
                 {
                     console.log(e);
+
+                    //mutex serbest bırak
                     return { orderId: orderId, success: false, message: 'Bir hata oluştu.' };
                 }
             });
         })
     );
     res.json({ message: 'Siparişler işlendi.', hata: 0, results });
-
+    //console.log(workers);
     }
     catch(e)
     {
         res.json({ message: 'Bir hata oluştu: ' + e.toString(), hata: 1 });
+
+
     }
 
     console.log("test");
