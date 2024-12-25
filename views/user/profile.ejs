@@ -35,7 +35,7 @@
     <div class="container mt-3">
         <div class="row">
             <div class="col-md-6 d-flex justify-content-center" style="margin-top: 40px;">
-                <div class="card" style="width: 20rem;">
+                <div class="card" style="width: 25rem;">
                     <ul class="list-group list-group-flush">
                       <li class="list-group-item"><strong>Id :</strong> <%= kullanici.CustomerID %></li>
                       <li class="list-group-item"><strong>Nickname :</strong> <%= kullanici.CustomerNickname %></li>
@@ -65,6 +65,7 @@
                         <button type="button" class="btn btn-outline-secondary" onclick="increaseBudget('<%= kullanici.CustomerID %>', 10)">+10</button>
                         <button type="button" class="btn btn-outline-secondary" onclick="increaseBudget('<%= kullanici.CustomerID %>', 50)">+50</button>
                         <button type="button" class="btn btn-outline-secondary" onclick="increaseBudget('<%= kullanici.CustomerID %>', 100)">+100</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="increaseBudget('<%= kullanici.CustomerID %>', 1000)">+1000</button>
                     </div>
                 </div>
             </div>

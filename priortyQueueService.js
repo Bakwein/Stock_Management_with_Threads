@@ -1,3 +1,6 @@
+const db = require('./data/db');
+const moment = require('moment');
+
 class PriortyQueue
 {
     constructor() // default const.
@@ -59,12 +62,24 @@ async function updatePriortyQueue()
         //console.log(threads);
 
         priortyQueue.clear();
-        threads.forEach((thread) => {
-            if(thread.oncelikSkoru != null)
-            {
+        for (const thread of threads) {
+            if (thread.oncelikSkoru != null) {
                 priortyQueue.enqueue(thread);
+                console.log("Thread Order ID: " + thread.orderId);
+                const [order,] = await db.execute(`SELECT * FROM orders WHERE OrderID = ?`, [thread.orderId]);
+                console.log(order[0].OrderStatus);
+                if(order[0].OrderStatus == 0) //0da 1 yap
+                {
+                    await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [1, thread.orderId]);
+                    //log at -> Müşteri 1 (premium) siparişi işleme alındı
+                    const [customer,] = await db.execute(`SELECT * FROM customers WHERE CustomerID = ?`, [order[0].CustomerIDR]);
+
+                    const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                    const text = order[0].CustomerIDR + " idli müşterinin(" + customer[0].CustomerName+ ")," + order[0].OrderID + " idli sipariş işleme alındı";
+                    await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [order[0].CustomerIDR, order[0].OrderID, time, 1, text]);
+                }
             }
-        });
+        }
 
         //priortyQueue.printQueue();
 

@@ -7,7 +7,7 @@ const { orderId, customerId, productId, customerType,  timeout } = workerData;
 let beklemeSuresi = 0;
 const beklemeSuresiAgirligi = 0.5;
 
-const premiumOncelikSkoru = 50;
+const premiumOncelikSkoru = 15;
 const normalOncelikSkoru = 10;
 
 async function monitorOrder(){
@@ -39,7 +39,7 @@ async function monitorOrder(){
             console.log(results);
         
     
-            if(results.length > 0 && results[0].OrderStatus === 0){
+            if(results.length > 0 && (results[0].OrderStatus === 0 || results[0].OrderStatus === 1)){
             //siparis iptal edildi
                 await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
             

@@ -85,12 +85,12 @@
             console.log(array);
 
             const productNames = array.urunler
-            .filter(product => product.ProductName) 
+            .filter(product => product.ProductName !== undefined && product.ProductName !== null) 
             .map(product => product.ProductName);
             console.log(productNames);
 
             const productStock = array.urunler
-            .filter(product => product.Stock)
+            .filter(product => product.Stock !== undefined && product.Stock !== null)
             .map(product => product.Stock);
             console.log(productStock);
 

@@ -609,8 +609,8 @@ app.post("/api/process_orders", async function(req, res) {
                         const text = orderId + " idli sipariş işlenirken bir hata oluştu";
                         await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [order.customerId, orderId, time, -1, text]);
 
-                        // sipris status 3 yap
-                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+                        // sipris status -1 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
 
                         //worker sonlandır
                         if(worker)
@@ -633,8 +633,8 @@ app.post("/api/process_orders", async function(req, res) {
                         const text = orderId + " idli sipariş işlenirken bir hata oluştu";
                         await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [order.customerId, orderId, time, -1, text]);
 
-                        // sipris status 3 yap
-                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+                        // sipris status -1 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
 
                         //worker sonlandır
                         if(worker)
@@ -654,11 +654,8 @@ app.post("/api/process_orders", async function(req, res) {
                         const text = orderId + " idli sipariş stok yetersizliğinden dolayı iptal edildi";
                         await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, -1, text]);
 
-                        // sipris status 3 yap
-                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
-
-                        // sipris status 3 yap
-                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [3, orderId]);
+                        // sipris status -1 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
 
                         //worker sonlandır
                         if(worker)
@@ -670,6 +667,71 @@ app.post("/api/process_orders", async function(req, res) {
 
                         throw new Error(`Stok yetersiz: ${rows[0].Stock} < ${orderRows[0].Quantity}`);
                     }
+
+                    //bakiye kontrolü
+                    const [customerRows,] = await db.execute(`SELECT Budget FROM customers WHERE CustomerID = ?`, [orderRows[0].CustomerIDR]);
+                    if(customerRows.length === 0)
+                    {
+                        //log olustur
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderId + " idli sipariş işlenirken bir hata oluştu";
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, -1, text]);
+
+                        // sipris status 3 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
+
+                        //worker sonlandır
+                        if(worker)
+                        {
+                            worker.postMessage({ type: "approve" });
+                            workers.delete(orderId);
+                        }
+
+                        throw new Error(`Müşteri bulunamadı: ${orderRows[0].CustomerIDR}`);
+                    }
+
+                    if(customerRows[0].Budget < orderRows[0].TotalPrice)
+                    {
+                        //log olustur
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderId + " idli sipariş bakiye yetersizliğinden dolayı iptal edildi";
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, -1, text]);
+
+                        // sipris status -1 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
+
+                        //worker sonlandır
+                        if(worker)
+                        {
+                            worker.postMessage({ type: "approve" });
+                            workers.delete(orderId);
+                        }
+
+                        throw new Error(`Bakiye yetersiz: ${customerRows[0].Budget} < ${orderRows[0].TotalPrice}`);
+                    }
+
+                    //müşterinin o ürün ile alakalı orderStatus'u 2 olan 5 tane ürünü var mı
+                    const [orderCountRows,] = await db.execute(`SELECT COUNT(*) AS count FROM orders WHERE ProductIDR = ? AND OrderStatus = 2 AND CustomerIDR = ?`, [productId, orderRows[0].CustomerIDR]);
+                    if(orderCountRows[0].count >= 5)
+                    {
+                        //log olustur
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderId + ` idli sipariş işlenirken bir hata oluştu : Müşterinin aynı ürün için 5 adet onaylanmış siparişi var: ${orderCountRows[0].count}`;
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, -1, text]);
+
+                        // sipris status -1 yap
+                        await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
+
+                        //worker sonlandır
+                        if(worker)
+                        {
+                            worker.postMessage({ type: "approve" });
+                            workers.delete(orderId);
+                        }
+
+                        throw new Error(`Müşterinin aynı ürün için 5 adet onaylanmış siparişi var: ${orderCountRows[0].count}`);
+                    }
+
 
                     //stok azalt
                     await db.execute(`UPDATE products SET Stock = Stock - ? WHERE ProductID = ?`, [orderRows[0].Quantity, productId]);
@@ -683,6 +745,22 @@ app.post("/api/process_orders", async function(req, res) {
                     await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 2, text]);
 
                     //thread sonlanma mesajı
+
+                    //müşterinin TotalSpend değerini güncelle
+                    await db.execute(`UPDATE customers SET TotalSpent = TotalSpent + ? WHERE CustomerID = ?`, [orderRows[0].TotalPrice, orderRows[0].CustomerIDR]);
+
+                    //eğer müşteri Normal ise ve TotalSpend değeri 2000 TL'yi geçerse Premium yap
+                    const [customer,] = await db.execute(`SELECT * FROM customers WHERE CustomerID = ?`, [orderRows[0].CustomerIDR]);
+                    if(customer[0].TotalSpent >= 2000 && customer[0].CustomerType === "Normal")
+                    {
+                        await db.execute(`UPDATE customers SET CustomerType = ? WHERE CustomerID = ?`, ["Premium", orderRows[0].CustomerIDR]);
+
+                        //log müşteri tipi değişikliği
+                        const time = moment().format('YYYY-MM-DD HH:mm:ss');
+                        const text = orderRows[0].CustomerIDR + " idli müşteri Premium yapıldı";
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 3, text]);
+                    }
+
                     
                     if(worker)
                     {

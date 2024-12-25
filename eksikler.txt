@@ -1,31 +1,17 @@
-Bir müşteri, her üründen en fazla 5 adet satın alabilir -> THREAD İŞLENİRKEN KONTROL
-
-listeye atılınca set yapma olayı!
-
 Admin, ürün ve stok bilgilerine erişirken diğer işlemleri beklemeye alır
-
-Standard müşteri Premium müşteri olma olayı -> Bir müşteri 2000 TL üzeri alışveriş yaparsa otomatik olarak Premium Müşteristatüsüne geçer.
-Eğer bir Standard müşteri Premium müşteri olduysa, müşterinin mevcut işlem sırasına dokunulmamalıdır. Müşteri türü değişikliği bir sonraki işlemde etkili olmalıdır.
 
 Her işlem sırasında sıralama, dinamik olarak yeniden hesaplanmalıdır
 
 LOG PANELİ
-LOGLAR EKSİK KISIMLAR SADECE BAŞ KISIM VAR ŞU AN
 Bazı Hata Mesajı Türleri:
-○ “Ürün stoğu yetersiz”: Bir müşteri satın alma işlemine başvurduğunda, ürün
-stoğunun yeterli olmaması durumunda tetiklenir.
-○ “Müşteri bakiyesi yetersiz”: Müşterinin bütçesi, seçilen ürün(ler)in toplam fiyatını karşılamıyorsa tetiklenir.
 ○ “Veritabanı Hatası”: Bağlantı sorunları veya işlem sırasında oluşan
 deadlock'lar gibi durumlarda tetiklenir.
 
+log id'ler düzenlenecek -> Log türü: “Hata”, “Uyarı”, “Bilgilendirme”
+
 Müşteri sırasını animasyonla gösterebilirsiniz:
 ■ Örneğin, sipariş sırası değiştiğinde listeler yukarı/aşağı hareket eder
-
 Sipariş İşleme Animasyonu
 ○ İşlemde olan siparişler için bir animasyon göstergesi:
-■ Örneğin: “Müşteri 1’in siparişi işleniyor” şeklinde bir yükleme çubuğu
-veya hareketli bir simge.
 
-MÜŞTERİ SİPARİŞ DURUM EKRANI -> timeout'a düşen thread'e göre sayfasının yenilenmesi????????
-
-!!!!!!!!!!!!!!TAKILIYOR O SORUNU ÇÖZ SİPARİŞ KISMI OK GİBİ ŞU AN
+MÜŞTERİ SİPARİŞ DURUM EKRANI -> timeout'a düşen thread'e göre sayfasının yenilenmesi????????  -> approve mesajı üzerinden değiştirilebilir
