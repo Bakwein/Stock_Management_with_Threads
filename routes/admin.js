@@ -147,7 +147,7 @@ router.get("/approve_orders", async function (req, res){
     {
         return;
     }
-    const [orders,] = await db.execute("SELECT * FROM orders WHERE OrderStatus = 0");
+    const [orders,] = await db.execute("SELECT * FROM orders WHERE OrderStatus = 0 OR OrderStatus = 1");
     const [products,] = await db.execute("SELECT * FROM products");
     const [customers,] = await db.execute("SELECT * FROM customers");
 

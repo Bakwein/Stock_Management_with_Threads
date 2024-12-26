@@ -433,7 +433,7 @@ app.post("/api/siparis_olustur", async function(req, res) {
         console.log(orderID);
         const log_string = musteriAdi + " (" + musteriTipi + ") " + " adlı müşteri " + urun.ProductName + " ürününden " + adet + " adet sipariş verdi";
         //log olusturma
-        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?,?,?,?,?)", [CustomerIDR, orderID, dateTime, 0, log_string]);
+        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?,?,?,?,?)", [CustomerIDR, orderID, dateTime, 1, log_string]);
 
         //thread
         const worker = new Worker('./orderWorker.js', {
@@ -717,7 +717,7 @@ app.post("/api/process_orders", async function(req, res) {
                         //log olustur
                         const time = moment().format('YYYY-MM-DD HH:mm:ss');
                         const text = orderId + ` idli sipariş işlenirken bir hata oluştu : Müşterinin aynı ürün için 5 adet onaylanmış siparişi var: ${orderCountRows[0].count}`;
-                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, -1, text]);
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 0, text]);
 
                         // sipris status -1 yap
                         await db.execute(`UPDATE orders SET OrderStatus = ? WHERE OrderID = ?`, [-1, orderId]);
@@ -742,10 +742,11 @@ app.post("/api/process_orders", async function(req, res) {
                     //log oluştur
                     const time = moment().format('YYYY-MM-DD HH:mm:ss');
                     const text = orderId + " idli sipariş onaylandı";
-                    await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 2, text]);
+                    await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 1, text]);
 
                     //thread sonlanma mesajı
 
+                    await db.execute("UPDATE customers SET Budget = Budget - ? WHERE CustomerID = ?", [orderRows[0].TotalPrice, orderRows[0].CustomerIDR]);
                     //müşterinin TotalSpend değerini güncelle
                     await db.execute(`UPDATE customers SET TotalSpent = TotalSpent + ? WHERE CustomerID = ?`, [orderRows[0].TotalPrice, orderRows[0].CustomerIDR]);
 
@@ -758,7 +759,7 @@ app.post("/api/process_orders", async function(req, res) {
                         //log müşteri tipi değişikliği
                         const time = moment().format('YYYY-MM-DD HH:mm:ss');
                         const text = orderRows[0].CustomerIDR + " idli müşteri Premium yapıldı";
-                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 3, text]);
+                        await db.execute("INSERT INTO logs (CustomerIDR, OrderIDR, LogDate, LogType, LogDetails) VALUES (?, ?, ?, ?, ?)", [orderRows[0].CustomerIDR, orderId, time, 1, text]);
                     }
 
                     

@@ -245,7 +245,7 @@ router.get("/profile", async function(req,res){
         return;
     }
     const [kullanici,] = await db.execute("SELECT * FROM customers WHERE CustomerID = ?", [id]);
-    const [siparisler,] = await db.execute("SELECT * FROM orders WHERE CustomerIDR = ?", [id]); //onaylanmışa göre sonra bakılacak
+    const [siparisler,] = await db.execute("SELECT * FROM orders WHERE CustomerIDR = ? AND OrderStatus = 2", [id]); 
 
     res.render("user/profile", {
         title: "Profilim",
