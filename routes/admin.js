@@ -134,7 +134,7 @@ router.get("/logs", async function(req, res){
     {
         return;
     }
-    const [loglar,] = await db.execute("SELECT logs.LogID, customers.CustomerNickname, logs.OrderIDR, logs.LogDate, logs.LogType, logs.LogDetails FROM logs JOIN customers ON logs.CustomerIDR = customers.CustomerID");
+    const [loglar,] = await db.execute("SELECT logs.LogID, customers.CustomerNickname, logs.OrderIDR, logs.LogDate, logs.LogType, logs.LogDetails FROM logs JOIN customers ON logs.CustomerIDR = customers.CustomerID ORDER BY logs.LogID");
     res.render("admin/logs", {
         title: "Loglar",
         loglar: loglar

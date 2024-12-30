@@ -10,6 +10,9 @@
             height: 100vh;
             background: #2A2B33;
         }
+        #priorityTable th, #priorityTable td {
+            color: white !important; /* Metin rengi beyaz */
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -58,25 +61,34 @@
                     <% }) %>
                 </div>
             </div>
+
+            <h3 style="margin-top: 40px; color: #fff;"><strong>Onay Sırasına Göre Siparişler</strong></h3>
+            <div class="row">
+                <div class="col-md-12 mt-3">
+                    <div>
+                        <table id="priorityTable" border="1" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width:80px; color: #fff">Sıra</th>
+                                    <th style="color: #fff;">Order ID</th>
+                                    <th style="color: #fff;">Öncelik Skoru</th>
+                                    <th style="color: #fff;">Bekleme Süresi</th>
+                                </tr>
+                            </thead>
+                            <tbody style="color: #fff">
+                                <!-- Dinamik olarak satırlar buraya eklenecek -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <script src="tablo.js"></script>
         </div>
+
+        
         
         <script>
             document.addEventListener("DOMContentLoaded", async function () {
-            /*const threads =  JSON.stringify(threads); // API'den veriyi al
-            console.log(threads);
-
-            const threadOrderIDs = threads
-            .filter(thread => thread.orderId) 
-            .map(thread => thread.orderId);
-            console.log(threadOrderIDs);
-
-            const threadOncelikSkoru = threads
-            .filter(thread => thread.oncelikSkoru)
-            .map(thread => thread.oncelikSkoru);
-            console.log(threadOncelikSkoru);
-
-            const backgroundColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(75, 192, 192, 0.2)');
-            const borderColors = threadOncelikSkoru.map(stock => stock < 10 ? 'rgba(255, 99, 132, 1)' : 'rgba(75, 192, 192, 1)');*/
 
             const ctx = document.getElementById('myChart').getContext('2d');
             const myChart = new Chart(ctx, {
@@ -173,5 +185,55 @@
             }
         </script>
     
+        <script>
+            document.addEventListener("DOMContentLoaded", async function () {
+                setInterval(async function () {
+                    // API'den veri çek
+                    const response = await fetch('http://localhost:3001/api/threads', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                    });
+                    const threads = await response.json();
+
+                    // *** TABLOYU GÜNCELLEME ***
+                    const tableBody = document.querySelector('#priorityTable tbody');
+                    tableBody.innerHTML = ""; // Mevcut tabloyu temizle
+
+                    threads.forEach((thread, index) => {
+                        if (thread.orderId && thread.oncelikSkoru && thread.beklemeSuresi !== undefined) {
+                            const row = document.createElement('tr');
+                            row.style.color = 'white';
+
+                            // Sıra numarası
+                            const sıraCell = document.createElement('td');
+                            sıraCell.textContent = index + 1;
+
+                            // Order ID
+                            const orderIdCell = document.createElement('td');
+                            orderIdCell.textContent = thread.orderId;
+
+                            // Öncelik Skoru
+                            const oncelikSkoruCell = document.createElement('td');
+                            oncelikSkoruCell.textContent = thread.oncelikSkoru;
+
+                            // Bekleme Süresi
+                            const beklemeSuresiCell = document.createElement('td');
+                            beklemeSuresiCell.textContent = thread.beklemeSuresi;
+
+                            // Satıra hücreleri ekle
+                            row.appendChild(sıraCell);
+                            row.appendChild(orderIdCell);
+                            row.appendChild(oncelikSkoruCell);
+                            row.appendChild(beklemeSuresiCell);
+
+                            // Satırı tablo gövdesine ekle
+                            tableBody.appendChild(row);
+                        }
+                    });
+                }, 1000);
+            });
+        </script>
 </body>
 </html>
