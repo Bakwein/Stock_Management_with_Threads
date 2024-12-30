@@ -269,22 +269,42 @@ app.get("/api/delete_product/:id", async function(req, res) {
 });
 
 app.post("/api/edit/:id", async function(req, res) {
-
     const product_data = req.body;
     const id = req.params.id;
-    console.log(product_data);
-    console.log(id);
-
-    const [kontrol,] = await db.execute("SELECT * FROM products WHERE ProductID = ?", [id]);
-
-    if(kontrol.length == 0)
-    {
-        res.status(404).json({ success: false, message: 'Ürün bulunamadı.' });
+    
+    let mutex = productMutexes.get(id);
+    if (!mutex) {
+        mutex = new Mutex();
+        productMutexes.set(id, mutex);
     }
 
-    await db.execute("UPDATE products SET ProductName = ?, Stock = ?, Price = ? WHERE ProductID = ?", [product_data.urunAdi, product_data.stok, product_data.fiyat, id]);
-
-    res.status(200).json({ success: true, message: 'Ürün başarıyla güncellendi. '});
+    let release;  // release değişkenini burada tanımlıyoruz
+    
+    try {
+        release = await mutex.acquire();  // release değişkenine atama yapıyoruz
+        
+        try {
+            const [kontrol,] = await db.execute("SELECT * FROM products WHERE ProductID = ?", [id]);
+            
+            if(kontrol.length == 0) {
+                return res.status(404).json({ success: false, message: 'Ürün bulunamadı.' });
+            }
+            
+            await db.execute("UPDATE products SET ProductName = ?, Stock = ?, Price = ? WHERE ProductID = ?", 
+                [product_data.urunAdi, product_data.stok, product_data.fiyat, id]);
+            
+            res.status(200).json({ success: true, message: 'Ürün başarıyla güncellendi. '});
+            
+        } catch(e) {
+            res.status(500).json({ success: false, message: 'Bir hata oluştu: ' + e.toString() });
+        }
+    } catch(e) {
+        res.status(500).json({ success: false, message: 'Bir hata oluştu: ' + e.toString() });
+    } finally {
+        if (release) {  // release fonksiyonu tanımlıysa çalıştır
+            release();
+        }
+    }
 });
 
 app.post("/api/user/register", async function(req,res) {
@@ -787,6 +807,7 @@ app.post("/api/process_orders", async function(req, res) {
         })
     );
     res.json({ message: 'Siparişler işlendi.', hata: 0, results });
+    //window.location.href = '/admin//approve_orders'
     //console.log(workers);
     }
     catch(e)
